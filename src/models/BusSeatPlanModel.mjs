@@ -1,6 +1,5 @@
 import { Model, DataTypes } from 'sequelize';
 import { sequelize } from '../config/db.mjs';
-import BusStructureType from './busStructureTypeModel.mjs';
 
 class BusSeatPlan extends Model {
   static associate(models){
