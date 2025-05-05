@@ -26,8 +26,8 @@ const busSearch = async (req, res) => {
                     fromTownship: bus.busFrom.name,
                     toTownship: bus.busTo.name,
                     busInfo: unserialize(seatPlan.bus_info),
-                    busDroppingPoints: bus.busDroppingPoints.map(droppingPoint => droppingPoint.station.name),
                     busBoardingPoints: bus.busBoardingPoints.map(boardingPoint => boardingPoint.station.name),
+                    busDroppingPoints: bus.busDroppingPoints.map(droppingPoint => droppingPoint.station.name),
                     description: bus.description,
                     busAmenities: bus.description,
                     sellingPrice: [

@@ -4,7 +4,8 @@ import models from "../models/index.mjs";
 const seatPlanRepository = {
     async getSeatPlanById(seatPlanId) {
         return await models.BusSeatPlan.findOne({
-            attributes :['id','prefix',[literal(`REPLACE(REPLACE(seatMap, "'", ""), '\\n', '')`),'seatMap']],
+            attributes :['id','prefix',[literal(`REPLACE(REPLACE(seatMap, "'", ""), '\\n', '')`),'seatMap'],
+            [literal(`REPLACE(REPLACE(blockMap, "'", ""), '\\n', '')`),'blockSeats']],
             where: {
                 id: seatPlanId,
             },
