@@ -51,9 +51,24 @@ const busSearch = async (req, res) => {
 const getBusSeatPlan = async (req, res) => {
     const { seatPlanId } = req.query;
     try {
-        const seatPlan = await seatPlanRepository.getSeatPlanById(seatPlanId);
+        const seatPlanInstance = await seatPlanRepository.getSeatPlanById(seatPlanId);
+        const seatPlan = seatPlanInstance.get({ plain: true });
         const seatMapArray = seatPlan.seatMap.split(',').map(item => item.split(''));
         const rawSeatMap = [];
+        let reservedSeats = "";
+        let temporaryHoldingSeats = "";
+        console.log(seatPlan.reservedSeats);
+        
+        seatPlan.reservedSeats.forEach((seat)=>{
+            reservedSeats += seat.reserved_seats
+        });
+
+        seatPlan.tempSeats.forEach((seat)=>{
+            temporaryHoldingSeats += seat.temp_seats;
+        })
+        delete seatPlan.tempSeats;
+        
+        
         for (let i = 0; i < seatMapArray.length; i++) {
             const seatRow = seatMapArray[i];
             const seatRawRow = [];
@@ -76,6 +91,8 @@ const getBusSeatPlan = async (req, res) => {
             rawSeatMap.push(seatRawRow);
         }
         seatPlan.seatMap = rawSeatMap;
+        seatPlan.reservedSeats = reservedSeats;
+        seatPlan.temporaryHoldingSeats = temporaryHoldingSeats;
         res.json(seatPlan);
     } catch (error) {
         console.error('Error retrieving bus seat plan:', error);

@@ -2,12 +2,12 @@ import { Model, DataTypes } from 'sequelize';
 import { sequelize } from '../config/db.mjs';
 
 class BusSeatPlan extends Model {
-  static associate(models){
+  static associate(models) {
     BusSeatPlan.belongsTo(models.BusStructureType, {
       foreignKey: 'bus_structure_id',
       as: 'busStructure',
     });
-    
+
     BusSeatPlan.belongsTo(models.Bus, {
       foreignKey: 'bus_id',
       as: 'bus',
@@ -17,6 +17,16 @@ class BusSeatPlan extends Model {
       foreignKey: 'seat_id',
       as: 'bookings',
     })
+
+    BusSeatPlan.hasMany(models.ReservedSeat, {
+      foreignKey: 'seat_id',
+      as: 'reservedSeats',
+    });
+
+    BusSeatPlan.hasMany(models.TempSeat, {
+      foreignKey: 'seat_id',
+      as: 'tempSeats',
+    });
   }
 }
 
