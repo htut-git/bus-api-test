@@ -1,7 +1,9 @@
-import { unserialize } from "php-serialize";
+import { serialize, unserialize } from "php-serialize";
 import { addDurationToDepartureTime, convertMyanmarToUTC } from "../helpers/dateTimeHelper.mjs";
 import busRepository from "../repository/busRepository.mjs";
 import seatPlanRepository from "../repository/seatPlanRepository.mjs";
+import models from "../models/index.mjs";
+import { now } from "sequelize/lib/utils";
 
 const busSearch = async (req, res) => {
     const { fromDestination, toDestination, forDate } = req.query;
@@ -48,51 +50,60 @@ const busSearch = async (req, res) => {
     }
 }
 
+const formattedSeatPlan = async (seatPlanId) => {
+    const seatPlanInstance = await seatPlanRepository.getSeatPlanById(seatPlanId);
+    const seatPlan = seatPlanInstance.get({ plain: true });
+    const seatMapArray = seatPlan.seatMap.split(',').map(item => item.split(''));
+    const rawSeatMap = [];
+    let reservedSeats = "";
+    let temporaryHoldingSeats = "";
+    let bookedSeats = "";
+    seatPlan.reservedSeats.forEach((seat) => {
+        reservedSeats += seat.reserved_seats
+    });
+    seatPlan.tempSeats.forEach((seat) => {
+        temporaryHoldingSeats += seat.temp_seats;
+    })
+    seatPlan.bookings.forEach((booking) => {
+        bookedSeats += booking.selected_seats
+    });
+    for (let i = 0; i < seatMapArray.length; i++) {
+        const seatRow = seatMapArray[i];
+        const seatRawRow = [];
+        let sCount = 0;
+        for (let a = 0; a < seatRow.length; a++) {
+            const seat = seatRow[a];
+            if (seat == 's') {
+                let seatNumber = '';
+                if (seatPlan.prefix == 'A') {
+                    seatNumber = `${i + 1}${String.fromCharCode("A".charCodeAt(0) + sCount)}`;
+                } else {
+                    seatNumber = `${String.fromCharCode("A".charCodeAt(0) + i)}${sCount + 1}`;
+                }
+                seatRawRow.push({ [`${i + 1}_${a + 1}`]: seatNumber });
+                sCount++;
+            } else {
+                seatRawRow.push({ "": "" });
+            }
+        }
+        rawSeatMap.push(seatRawRow);
+    }
+    return {
+        id: seatPlan.id,
+        prefix: seatPlan.prefix,
+        seatMap: rawSeatMap,
+        blockSeats: seatPlan.blockSeats,
+        reservedSeats: reservedSeats,
+        temporaryHoldingSeats: temporaryHoldingSeats,
+        bookedSeats: bookedSeats,
+        travelDate: seatPlan.bus_travel_date,
+    }
+}
+
 const getBusSeatPlan = async (req, res) => {
     const { seatPlanId } = req.query;
     try {
-        const seatPlanInstance = await seatPlanRepository.getSeatPlanById(seatPlanId);
-        const seatPlan = seatPlanInstance.get({ plain: true });
-        const seatMapArray = seatPlan.seatMap.split(',').map(item => item.split(''));
-        const rawSeatMap = [];
-        let reservedSeats = "";
-        let temporaryHoldingSeats = "";
-        console.log(seatPlan.reservedSeats);
-        
-        seatPlan.reservedSeats.forEach((seat)=>{
-            reservedSeats += seat.reserved_seats
-        });
-
-        seatPlan.tempSeats.forEach((seat)=>{
-            temporaryHoldingSeats += seat.temp_seats;
-        })
-        delete seatPlan.tempSeats;
-        
-        
-        for (let i = 0; i < seatMapArray.length; i++) {
-            const seatRow = seatMapArray[i];
-            const seatRawRow = [];
-            let sCount = 0 ;
-            for (let a = 0; a < seatRow.length; a++) {
-                const seat = seatRow[a];
-                if (seat == 's') {
-                    let seatNumber = '';
-                    if (seatPlan.prefix == 'A') {
-                        seatNumber = `${i + 1}${String.fromCharCode("A".charCodeAt(0) + sCount)}`;
-                    } else {
-                        seatNumber = `${String.fromCharCode("A".charCodeAt(0) + i)}${sCount + 1}`;
-                    }
-                    seatRawRow.push({ [`${i + 1}_${a + 1}`]: seatNumber });
-                    sCount ++;
-                } else {
-                    seatRawRow.push({ "": "" });
-                }
-            }
-            rawSeatMap.push(seatRawRow);
-        }
-        seatPlan.seatMap = rawSeatMap;
-        seatPlan.reservedSeats = reservedSeats;
-        seatPlan.temporaryHoldingSeats = temporaryHoldingSeats;
+        const seatPlan = await formattedSeatPlan(seatPlanId);
         res.json(seatPlan);
     } catch (error) {
         console.error('Error retrieving bus seat plan:', error);
@@ -110,4 +121,71 @@ const getTownships = async (req, res) => {
     }
 }
 
-export default { busSearch, getBusSeatPlan , getTownships }
+const confirmBooking = async (req, res) => {
+    const request = req.body;
+    try {
+        const rawSeatArray = request.rawSeatNo.split(',');
+        const seatPlan = await formattedSeatPlan(request.seatId);
+        rawSeatArray.forEach((rawNo) => {
+            if (seatPlan.blockSeats.includes(rawNo)) {
+                return res.status(400).json({ error: `Seat ${rawNo} is blocked` });
+            } else if (seatPlan.reservedSeats.includes(rawNo)) {
+                return res.status(400).json({ error: `Seat ${rawNo} is already reserved` });
+            } else if (seatPlan.temporaryHoldingSeats.includes(rawNo)) {
+                return res.status(400).json({ error: `Seat ${rawNo} is hold by other users` });
+            }
+        });
+        const seatPlanModel = await models.BusSeatPlan.findByPk(request.seatId, {
+            include: [{
+                as: 'bus',
+                model: models.Bus,
+                attributes: ['local_sell_price', 'foreigner_sell_price']
+            }]
+        });
+        if (!seatPlanModel) {
+            return res.status(404).json({ error: 'Seat plan not found' });
+        }
+        const originalSellingPrice = request.type === 'local' ? seatPlanModel.bus.local_sell_price : seatPlanModel.bus.foreigner_sell_price;
+
+        const selectedSeatWithQuotes = rawSeatArray.map(seat => `'${seat}'`).join(',');
+        models.Booking.create({
+            parent_id: 0,
+            seat_id: seatPlanModel.id,
+            bus_id: seatPlanModel.bus_id,
+            original_selling_price: originalSellingPrice,
+            price: originalSellingPrice,
+            service_fee: 0,
+            amount: rawSeatArray.length * originalSellingPrice,
+            travel_date: seatPlanModel.bus_travel_date,
+            payment_method: 'kbz_pay',
+            adult: rawSeatArray.length,
+            discount: 0,
+            used_bonus: 0,
+            guest: 1,
+            guest_name: request.passengerName,
+            guest_mobile: request.guestMobile,
+            nrc_no: request.nrcNo,
+            payment_complete: 0,
+            seat: request.seatNo,
+            selected_seat: selectedSeatWithQuotes,
+            status:0,
+            clear:0,
+            user_clear:0,
+            dollar_collected: '',
+            note: request.note || '',
+            type: request.type,
+            passenger_name:request.passengerName,
+            passenger_type: request.passengerType,
+            language: 'en',
+            boarding_point: serialize(request.boardingPoint),
+            dropping_point: serialize(request.droppingPoint),
+            booking_expire: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
+        });
+        res.json(seatPlan);
+    } catch (error) {
+        console.error('Error confirming booking:', error);
+        res.status(500).json({ error: 'Failed to confirm booking' });
+    }
+}
+
+export default { busSearch, getBusSeatPlan, getTownships, confirmBooking }

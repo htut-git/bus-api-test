@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, where } from 'sequelize';
 import models from '../models/index.mjs';
 
 const BusRepository = {
