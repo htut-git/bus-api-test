@@ -11,5 +11,4 @@ busRoutes.get("/get-bus-seat-plan",busSeatPlanRequest,validateRequest,busControl
 busRoutes.get("/townships",busController.getTownships);
 busRoutes.post("/confirm-booking",confirmBookingRequest,validateRequest, busController.confirmBooking);
 
-
 export default busRoutes;

@@ -129,15 +129,22 @@ const confirmBooking = async (req, res) => {
             include: [{
                 as: 'bus',
                 model: models.Bus,
-                attributes: ['local_sell_price', 'foreigner_sell_price']
+                attributes: ['local_sell_price', 'foreigner_sell_price','departure_time']
             }]
         });
+        const departureDateTime = new Date(`${seatPlanModel.bus_travel_date}T${seatPlanModel.bus.departure_time}`);
+        if (departureDateTime < new Date()) {
+            return res.status(400).json({ error: 'Cannot book for past travel dates' });
+        }
         if (!seatPlanModel) {
             return res.status(404).json({ error: 'Seat plan not found' });
         }
         const seatPlan = await formattedSeatPlan(request.seatId);
         const seatNumberArray = request.seatNo.split(',').map(seat => seat.trim());
         const rawSeatArray = getSeatRawNumber(seatNumberArray, seatPlan);
+        if (rawSeatArray.length !== seatNumberArray.length) {
+            return res.status(400).json({ error: 'Invalid seat numbers provided' });
+        }
         rawSeatArray.forEach((rawNo,i) => {
             if (seatPlan.blockSeats.includes(rawNo)) {
                 return res.status(400).json({ error: `Seat ${seatNumberArray[i]} is blocked` });
@@ -150,14 +157,11 @@ const confirmBooking = async (req, res) => {
             }
         });
         const originalSellingPrice = request.type === 'local' ? seatPlanModel.bus.local_sell_price : seatPlanModel.bus.foreigner_sell_price;
-
         const selectedSeatWithQuotes = rawSeatArray.map(seat => `'${seat}'`).join(',');
         const newBookingRef = await getNewBookingRef();
         models.Booking.create({
             b_ref: await getNewBookingRef(),
             ref: getRawBookingRef(newBookingRef, seatPlanModel.bus_id, 0),
-            // parent_id: 0,
-            // member_id:0,
             seat_id: seatPlanModel.id,
             bus_id: seatPlanModel.bus_id,
             original_selling_price: originalSellingPrice,
@@ -167,29 +171,23 @@ const confirmBooking = async (req, res) => {
             travel_date: seatPlanModel.bus_travel_date,
             payment_method: 'kbz_pay',
             adult: rawSeatArray.length,
-            // discount: 0,
-            // used_bonus: 0,
-            // guest: 1,
             guest_name: request.passengerName,
             guest_mobile: request.guestMobile,
             nrc_no: request.nrcNo,
-            // payment_complete: 0,
             seat: request.seatNo,
             selected_seat: selectedSeatWithQuotes,
-            // status: 0,
-            // clear: 0,
-            // user_clear: 0,
-            // dollar_collected: '',
             note: request.note || '',
-            type: request.type,
+            type: request.foreigner ? 'foreigner' : 'local',
             passenger_name: request.passengerName,
             passenger_type: request.passengerType,
-            // language: 'en',
             boarding_point: serialize(request.boardingPoint),
             dropping_point: serialize(request.droppingPoint),
             booking_expire: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
         });
-        res.json(seatPlan);
+        res.json({
+            message: 'Booking confirmed successfully',
+            bookingRef: newBookingRef,
+        });
     } catch (error) {
         console.error('Error confirming booking:', error);
         res.status(500).json({ error: 'Failed to confirm booking' });

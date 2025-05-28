@@ -15,7 +15,10 @@ app.use('/api/buses', busRoutes);
 
 // Home route
 app.get('/', (req, res) => {
-    res.send('API is running...');
+    {
+        const currentTime = new Date().toISOString();
+        res.json({ time: currentTime, message: "Welcome to the Bus Booking API", zone: process.env.TZ });
+    }
 });
 
 // Start server

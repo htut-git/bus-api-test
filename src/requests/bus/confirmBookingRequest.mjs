@@ -5,10 +5,7 @@ const confirmBookingRequest = [
     body("droppingPoint").notEmpty().withMessage("Dropping point is required"),
     body("seatNo").notEmpty().withMessage("Seat number is required"),
     body("seatId").isInt().withMessage("Seat ID must be an integer"),
-    body("type")
-        .isString()
-        .isIn(["local", "foreigner"])
-        .withMessage("Type must be either 'local' or 'foreigner'"),
+    body("foreigner").isBoolean().withMessage("Foreigner must be a boolean value"),
     body("paymentMethod").isString().isLength({ max: 20 }).withMessage("Payment method is required and max 20 chars"),
     body("guestMobile").notEmpty().withMessage("Guest mobile is required"),
     body("passengerName").isString().isLength({ max: 255 }).withMessage("Passenger name is required and max 255 chars"),

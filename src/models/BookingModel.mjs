@@ -107,7 +107,7 @@ Booking.init(
     },
     guest_email: {
       type: DataTypes.STRING(255),
-      allowNull: true,
+      defaultValue:''
     },
     nrc_no: {
       type: DataTypes.STRING(255),
