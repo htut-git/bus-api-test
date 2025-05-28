@@ -18,7 +18,7 @@ Booking.init(
     },
     parent_id: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      defaultValue: 0,
     },
     b_ref: {
       type: DataTypes.STRING(255),
@@ -26,15 +26,11 @@ Booking.init(
     },
     member_id: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      defaultValue: 0,
     },
     user_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      // references: { // Removed to prevent errors, add back if the model User exists
-      //   model: 'users',
-      //   key: 'id',
-      // },
     },
     user_child_id: {
       type: DataTypes.INTEGER,
@@ -54,7 +50,7 @@ Booking.init(
     },
     offer_code: {
       type: DataTypes.STRING(255),
-      allowNull: true,
+      defaultValue: '',
     },
     original_selling_price: {
       type: DataTypes.INTEGER,
@@ -66,7 +62,7 @@ Booking.init(
     },
     service_fee: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      defaultValue: 0,
     },
     amount: {
       type: DataTypes.INTEGER,
@@ -90,15 +86,16 @@ Booking.init(
     },
     discount: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      defaultValue:0
     },
     used_bonus: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      defaultValue: 0,
     },
     guest: {
       type: DataTypes.TINYINT,
-      allowNull: true,
+      defaultValue: 1, // Assuming 1 means guest booking
     },
     guest_name: {
       type: DataTypes.STRING(255),
@@ -118,7 +115,7 @@ Booking.init(
     },
     payment_complete: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      defaultValue: 0, // Assuming 0 means payment not complete
     },
     seat: {
       type: DataTypes.STRING(255),
@@ -130,31 +127,31 @@ Booking.init(
     },
     bank_name: {
       type: DataTypes.STRING(255),
-      allowNull: true,
+      defaultValue: '',
     },
     bank_remark: {
       type: DataTypes.TEXT,
-      allowNull: true,
+      defaultValue: '',
     },
     status: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      defaultValue: 0, // Assuming 0 means pending or not confirmed
     },
     clear: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      defaultValue: 0, // Assuming 0 means not cleared
     },
     user_clear: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      defaultValue:0
     },
     dollar_collect: {
       type: DataTypes.STRING(255),
-      allowNull: true,
+      defaultValue: '',
     },
     remark: {
       type: DataTypes.TEXT,
-      allowNull: true,
+      defaultValue: '',
     },
     note: {
       type: DataTypes.TEXT,
@@ -178,7 +175,7 @@ Booking.init(
     },
     language: {
       type: DataTypes.STRING(255),
-      allowNull: true,
+      defaultValue: 'en',
     },
     boarding_point: {
       type: DataTypes.STRING(255),

@@ -3,7 +3,6 @@ import { body } from "express-validator";
 const confirmBookingRequest = [
     body("boardingPoint").notEmpty().withMessage("Boarding point is required"),
     body("droppingPoint").notEmpty().withMessage("Dropping point is required"),
-    body("rawSeatNo").notEmpty().withMessage("Selected seat is required"),
     body("seatNo").notEmpty().withMessage("Seat number is required"),
     body("seatId").isInt().withMessage("Seat ID must be an integer"),
     body("type")

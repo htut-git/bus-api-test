@@ -4,6 +4,7 @@ import busRepository from "../repository/busRepository.mjs";
 import seatPlanRepository from "../repository/seatPlanRepository.mjs";
 import models from "../models/index.mjs";
 import { now } from "sequelize/lib/utils";
+import { getNewBookingRef, getRawBookingRef, getSeatRawNumber } from "../helpers/bookingHelper.mjs";
 
 const busSearch = async (req, res) => {
     const { fromDestination, toDestination, forDate } = req.query;
@@ -124,17 +125,6 @@ const getTownships = async (req, res) => {
 const confirmBooking = async (req, res) => {
     const request = req.body;
     try {
-        const rawSeatArray = request.rawSeatNo.split(',');
-        const seatPlan = await formattedSeatPlan(request.seatId);
-        rawSeatArray.forEach((rawNo) => {
-            if (seatPlan.blockSeats.includes(rawNo)) {
-                return res.status(400).json({ error: `Seat ${rawNo} is blocked` });
-            } else if (seatPlan.reservedSeats.includes(rawNo)) {
-                return res.status(400).json({ error: `Seat ${rawNo} is already reserved` });
-            } else if (seatPlan.temporaryHoldingSeats.includes(rawNo)) {
-                return res.status(400).json({ error: `Seat ${rawNo} is hold by other users` });
-            }
-        });
         const seatPlanModel = await models.BusSeatPlan.findByPk(request.seatId, {
             include: [{
                 as: 'bus',
@@ -145,11 +135,29 @@ const confirmBooking = async (req, res) => {
         if (!seatPlanModel) {
             return res.status(404).json({ error: 'Seat plan not found' });
         }
+        const seatPlan = await formattedSeatPlan(request.seatId);
+        const seatNumberArray = request.seatNo.split(',').map(seat => seat.trim());
+        const rawSeatArray = getSeatRawNumber(seatNumberArray, seatPlan);
+        rawSeatArray.forEach((rawNo,i) => {
+            if (seatPlan.blockSeats.includes(rawNo)) {
+                return res.status(400).json({ error: `Seat ${seatNumberArray[i]} is blocked` });
+            } else if (seatPlan.reservedSeats.includes(rawNo)) {
+                return res.status(400).json({ error: `Seat ${seatNumberArray[i]} is already reserved` });
+            } else if (seatPlan.temporaryHoldingSeats.includes(rawNo)) {
+                return res.status(400).json({ error: `Seat ${seatNumberArray[i]} is hold by other users` });
+            } else if (seatPlan.bookedSeats.includes(rawNo)) {
+                return res.status(400).json({ error: `Seat ${seatNumberArray[i]} is already booked` });
+            }
+        });
         const originalSellingPrice = request.type === 'local' ? seatPlanModel.bus.local_sell_price : seatPlanModel.bus.foreigner_sell_price;
 
         const selectedSeatWithQuotes = rawSeatArray.map(seat => `'${seat}'`).join(',');
+        const newBookingRef = await getNewBookingRef();
         models.Booking.create({
-            parent_id: 0,
+            b_ref: await getNewBookingRef(),
+            ref: getRawBookingRef(newBookingRef, seatPlanModel.bus_id, 0),
+            // parent_id: 0,
+            // member_id:0,
             seat_id: seatPlanModel.id,
             bus_id: seatPlanModel.bus_id,
             original_selling_price: originalSellingPrice,
@@ -159,24 +167,24 @@ const confirmBooking = async (req, res) => {
             travel_date: seatPlanModel.bus_travel_date,
             payment_method: 'kbz_pay',
             adult: rawSeatArray.length,
-            discount: 0,
-            used_bonus: 0,
-            guest: 1,
+            // discount: 0,
+            // used_bonus: 0,
+            // guest: 1,
             guest_name: request.passengerName,
             guest_mobile: request.guestMobile,
             nrc_no: request.nrcNo,
-            payment_complete: 0,
+            // payment_complete: 0,
             seat: request.seatNo,
             selected_seat: selectedSeatWithQuotes,
-            status:0,
-            clear:0,
-            user_clear:0,
-            dollar_collected: '',
+            // status: 0,
+            // clear: 0,
+            // user_clear: 0,
+            // dollar_collected: '',
             note: request.note || '',
             type: request.type,
-            passenger_name:request.passengerName,
+            passenger_name: request.passengerName,
             passenger_type: request.passengerType,
-            language: 'en',
+            // language: 'en',
             boarding_point: serialize(request.boardingPoint),
             dropping_point: serialize(request.droppingPoint),
             booking_expire: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
