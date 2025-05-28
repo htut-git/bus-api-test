@@ -47,7 +47,7 @@ const busSearch = async (req, res) => {
         res.json(formattedBuses);
     } catch (error) {
         console.error('Error searching for buses:', error);
-        res.status(500).json({ error: 'Failed to retrieve buses' });
+        res.status(500).json({ message: 'Failed to retrieve buses' });
     }
 }
 
@@ -108,7 +108,7 @@ const getBusSeatPlan = async (req, res) => {
         res.json(seatPlan);
     } catch (error) {
         console.error('Error retrieving bus seat plan:', error);
-        res.status(500).json({ error: 'Failed to retrieve bus seat plan' });
+        res.status(500).json({ message: 'Failed to retrieve bus seat plan' });
     }
 }
 
@@ -118,7 +118,7 @@ const getTownships = async (req, res) => {
         res.json(townships);
     } catch (error) {
         console.error('Error retrieving townships:', error);
-        res.status(500).json({ error: 'Failed to retrieve townships' });
+        res.status(500).json({ message: 'Failed to retrieve townships' });
     }
 }
 
@@ -134,26 +134,26 @@ const confirmBooking = async (req, res) => {
         });
         const departureDateTime = new Date(`${seatPlanModel.bus_travel_date}T${seatPlanModel.bus.departure_time}`);
         if (departureDateTime < new Date()) {
-            return res.status(400).json({ error: 'Cannot book for past travel dates' });
+            return res.status(400).json({ message: 'Cannot book for past travel dates' });
         }
         if (!seatPlanModel) {
-            return res.status(404).json({ error: 'Seat plan not found' });
+            return res.status(404).json({ message: 'Seat plan not found' });
         }
         const seatPlan = await formattedSeatPlan(request.seatId);
         const seatNumberArray = request.seatNo.split(',').map(seat => seat.trim());
         const rawSeatArray = getSeatRawNumber(seatNumberArray, seatPlan);
         if (rawSeatArray.length !== seatNumberArray.length) {
-            return res.status(400).json({ error: 'Invalid seat numbers provided' });
+            return res.status(400).json({ message: 'Invalid seat numbers provided' });
         }
         rawSeatArray.forEach((rawNo,i) => {
             if (seatPlan.blockSeats.includes(rawNo)) {
-                return res.status(400).json({ error: `Seat ${seatNumberArray[i]} is blocked` });
+                return res.status(400).json({ message: `Seat ${seatNumberArray[i]} is blocked` });
             } else if (seatPlan.reservedSeats.includes(rawNo)) {
-                return res.status(400).json({ error: `Seat ${seatNumberArray[i]} is already reserved` });
+                return res.status(400).json({ message: `Seat ${seatNumberArray[i]} is already reserved` });
             } else if (seatPlan.temporaryHoldingSeats.includes(rawNo)) {
-                return res.status(400).json({ error: `Seat ${seatNumberArray[i]} is hold by other users` });
+                return res.status(400).json({ message: `Seat ${seatNumberArray[i]} is hold by other users` });
             } else if (seatPlan.bookedSeats.includes(rawNo)) {
-                return res.status(400).json({ error: `Seat ${seatNumberArray[i]} is already booked` });
+                return res.status(400).json({ message: `Seat ${seatNumberArray[i]} is already booked` });
             }
         });
         const originalSellingPrice = request.type === 'local' ? seatPlanModel.bus.local_sell_price : seatPlanModel.bus.foreigner_sell_price;
@@ -190,7 +190,7 @@ const confirmBooking = async (req, res) => {
         });
     } catch (error) {
         console.error('Error confirming booking:', error);
-        res.status(500).json({ error: 'Failed to confirm booking' });
+        res.status(500).json({ message: 'Failed to confirm booking' });
     }
 }
 
