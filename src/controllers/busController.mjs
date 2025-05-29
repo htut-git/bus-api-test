@@ -4,7 +4,7 @@ import busRepository from "../repository/busRepository.mjs";
 import seatPlanRepository from "../repository/seatPlanRepository.mjs";
 import models from "../models/index.mjs";
 import { now } from "sequelize/lib/utils";
-import { getNewBookingRef, getRawBookingRef, getSeatRawNumber } from "../helpers/bookingHelper.mjs";
+import { getNewBookingRef, getRawBookingRef, getSeatNoFromRaw, getSeatRawNumber } from "../helpers/bookingHelper.mjs";
 
 const busSearch = async (req, res) => {
     const { fromDestination, toDestination, forDate } = req.query;
@@ -105,6 +105,10 @@ const getBusSeatPlan = async (req, res) => {
     const { seatPlanId } = req.query;
     try {
         const seatPlan = await formattedSeatPlan(seatPlanId);
+        seatPlan.bookedSeats = getSeatNoFromRaw(seatPlan.bookedSeats, seatPlan).toString();
+        seatPlan.reservedSeats = getSeatNoFromRaw(seatPlan.reservedSeats, seatPlan).toString();
+        seatPlan.temporaryHoldingSeats = getSeatNoFromRaw(seatPlan.temporaryHoldingSeats, seatPlan).toString();
+        seatPlan.blockSeats = getSeatNoFromRaw(seatPlan.blockSeats, seatPlan).toString();
         res.json(seatPlan);
     } catch (error) {
         console.error('Error retrieving bus seat plan:', error);

@@ -19,6 +19,27 @@ export function getSeatRawNumber(seatNumbers, formattedSeatPlan) {
     return seatRawArray;
 }
 
+export function getSeatNoFromRaw(seatRawNumbers, formattedSeatPlan) {
+    // If seatRawNumbers is a string, split it by comma and trim spaces
+    if (typeof seatRawNumbers === 'string') {
+        seatRawNumbers = seatRawNumbers.split(',').map(s => s.trim());
+    }
+    const seatNumbers = [];
+    const seatMap = formattedSeatPlan.seatMap;
+    for (const row of seatMap) {
+        for (const seat of row) {
+            for (const [rawNo, seatNo] of Object.entries(seat)) {
+                if (seatRawNumbers.includes(rawNo)) {
+                    if(seatNo !== ""){
+                        seatNumbers.push(seatNo);
+                    }
+                }
+            }
+        }
+    }
+    return seatNumbers;
+}
+
 export async function getNewBookingRef() {
     // Get the latest booking by ref in descending order
     const latestBooking = await models.Booking.findOne({
