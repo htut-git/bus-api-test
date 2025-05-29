@@ -11,9 +11,12 @@ const confirmBookingRequest = [
     body("passengerName").isString().isLength({ max: 255 }).withMessage("Passenger name is required and max 255 chars"),
     body("passengerType")
         .isString()
-        .isIn(["male", "female", "group", "monk"])
+        .custom((value) => {
+            const allowed = ["male", "female", "group", "monk"];
+            return allowed.includes(value.toLowerCase());
+        })
         .isLength({ max: 10 })
-        .withMessage("Passenger type must be 'male', 'female', 'group', or 'moke' and max 10 chars"),
+        .withMessage("Passenger type must be 'male', 'female', 'group', or 'monk' and max 10 chars"),
     body("nrcNo").isString().isLength({ max: 40 }).withMessage("NRC no is required and max 40 chars"),
     body("note").optional().isString().isLength({ max: 400 }).withMessage("Note max 400 chars"),
 ];

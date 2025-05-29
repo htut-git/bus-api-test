@@ -179,7 +179,7 @@ const confirmBooking = async (req, res) => {
             note: request.note || '',
             type: request.foreigner ? 'foreigner' : 'local',
             passenger_name: request.passengerName,
-            passenger_type: request.passengerType,
+            passenger_type: request.passengerType.toLowerCase(),
             boarding_point: serialize(request.boardingPoint),
             dropping_point: serialize(request.droppingPoint),
             booking_expire: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
