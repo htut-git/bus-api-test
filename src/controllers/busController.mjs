@@ -140,7 +140,7 @@ const confirmBooking = async (req, res) => {
             return res.status(404).json({ message: 'Seat plan not found' });
         }
         const seatPlan = await formattedSeatPlan(request.seatId);
-        const seatNumberArray = request.seatNo.split(',').map(seat => seat.trim());
+        const seatNumberArray = request.seatNo.split(',').map(seat => seat.trim().toUpperCase());
         const rawSeatArray = getSeatRawNumber(seatNumberArray, seatPlan);
         if (rawSeatArray.length !== seatNumberArray.length) {
             return res.status(400).json({ message: 'Invalid seat numbers provided' });
